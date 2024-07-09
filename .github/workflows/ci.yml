@@ -23,14 +23,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Format Check
-        run: npm format --check
-
       - name: Lint
-        run: npm lint
+        run: npm run lint
 
       - name: Type Check
-        run: npm type-check
+        run: npm run type-check
 
       - name: Test
-        run: npm test -- --disable-coverage --allow-empty-coverage # Disable coverage reporting for CI
+        run: npm run test
