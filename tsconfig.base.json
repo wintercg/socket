@@ -1,11 +1,7 @@
 {
-  "description": "The base configuration for the project. Extended configs are responsible for including files.",
-  "extends": "@vercel/style-guide/typescript",
+  "description": "The base configuration for the project. Extended configs are responsible for including files and producing outputs.",
+  "extends": "@tsconfig/node20",
   "compilerOptions": {
-    "lib": ["ES2023"],
-    "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "Node16",
     "noEmit": true
   }
 }
