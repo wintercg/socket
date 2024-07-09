@@ -1,14 +1,15 @@
-import tap from 'tap';
-import { isSocketAddress } from '../src/is-socket-address';
+import test from 'node:test'
+import assert from 'node:assert'
+import { isSocketAddress } from '../src/is-socket-address'
 
-void tap.test(
-  'isSocketAddress correctly validates Socket API socket address objects',
-  (t) => {
-    t.ok(isSocketAddress({ hostname: 'localhost', port: 0 }));
-    t.notOk(isSocketAddress({ hostname: 'localhost' }), 'missing port');
-    t.notOk(isSocketAddress({ port: 0 }), 'missing hostname');
-    t.notOk(isSocketAddress({}), 'empty object');
-    t.notOk(isSocketAddress(null), 'null');
-    t.end();
-  },
-);
+test('isSocketAddress correctly validates Socket API socket address objects', () => {
+  assert.strictEqual(isSocketAddress({ hostname: 'localhost', port: 0 }), true)
+  assert.strictEqual(
+    isSocketAddress({ hostname: 'localhost' }),
+    false,
+    'missing port'
+  )
+  assert.strictEqual(isSocketAddress({ port: 0 }), false, 'missing hostname')
+  assert.strictEqual(isSocketAddress({}), false, 'empty object')
+  assert.strictEqual(isSocketAddress(null), false, 'null')
+})

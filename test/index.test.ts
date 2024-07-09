@@ -1,100 +1,96 @@
-import net from 'node:net';
-import { once } from 'node:events';
-import tap from 'tap';
-import { SocketError, connect } from '../src';
+import net from 'node:net'
+import { once } from 'node:events'
+import { test } from 'node:test'
+import assert from 'node:assert'
+import { SocketError, connect } from '../src'
 import {
   getReaderWriterFromSocket,
   listenAndGetSocketAddress,
   writeAndReadSocket,
-} from './utils';
+} from './utils'
 
-void tap.test(
-  'Socket connected to tcp server with secureTransport: off',
-  async (t) => {
-    t.plan(7);
-    let connectCount = 0;
-    const message = 'abcde\r\n';
+test('Socket connected to tcp server with secureTransport: off', async () => {
+  let connectCount = 0
+  const message = 'abcde\r\n'
 
-    const server = net.createServer();
+  const server = net.createServer()
 
-    server.on('connection', (c) => {
-      connectCount++;
-      c.setEncoding('utf-8');
-      c.on('data', (data) => {
-        t.equal(data, message);
-      });
-      c.on('end', () => {
-        server.close();
-      });
-      c.pipe(c);
-    });
+  server.on('connection', (c) => {
+    connectCount++
+    c.setEncoding('utf-8')
+    c.on('data', (data) => {
+      assert.strictEqual(data, message)
+    })
+    c.on('end', () => {
+      server.close()
+    })
+    c.pipe(c)
+  })
 
-    const address = await listenAndGetSocketAddress(server);
-    const socket = connect(address);
+  const address = await listenAndGetSocketAddress(server)
+  const socket = connect(address)
 
-    await t.resolveMatch(
-      writeAndReadSocket(socket, message),
-      message,
-      'should pipe message',
-    );
+  assert.strictEqual(
+    await writeAndReadSocket(socket, message),
+    message,
+    'should pipe message'
+  )
 
-    await t.resolveMatch(socket.opened, { localAddress: '::1' });
+  assert.deepStrictEqual(await socket.opened, {
+    localAddress: '::1',
+    remoteAddress: '::1',
+  })
 
-    const close = socket.close();
-    t.equal(
-      socket.closed,
-      close,
-      '`.closed` and `.close()` should be the same object',
-    );
-    await t.resolves(close);
+  const close = socket.close()
+  assert.strictEqual(
+    socket.closed,
+    close,
+    '`.closed` and `.close()` should be the same object'
+  )
+  await assert.doesNotReject(close)
 
-    await t.rejects(
-      writeAndReadSocket(socket, message),
-      'should fail to pipe after close',
-    );
+  await assert.rejects(
+    writeAndReadSocket(socket, message),
+    'should fail to pipe after close'
+  )
 
-    await once(server, 'close');
+  await once(server, 'close')
 
-    t.equal(connectCount, 1, 'should connect one time');
-  },
-);
+  assert.strictEqual(connectCount, 1, 'should connect one time')
+})
 
-void tap.test(
-  'connect method correctly parses address as string',
-  async (t) => {
-    t.plan(4);
-    let connectCount = 0;
-    const message = 'abcde\r\n';
+test('connect method correctly parses address as string', async () => {
+  let connectCount = 0
+  const message = 'abcde\r\n'
 
-    const server = net.createServer();
+  const server = net.createServer()
 
-    server.on('connection', (c) => {
-      connectCount++;
-      c.setEncoding('utf-8');
-      c.on('data', (data) => {
-        t.equal(data, message);
-      });
-      c.on('end', () => {
-        server.close();
-      });
-    });
+  server.on('connection', (c) => {
+    connectCount++
+    c.setEncoding('utf-8')
+    c.on('data', (data) => {
+      assert.strictEqual(data, message)
+    })
+    c.on('end', () => {
+      server.close()
+    })
+  })
 
-    const address = await listenAndGetSocketAddress(server);
+  const address = await listenAndGetSocketAddress(server)
 
-    const socket = connect(`localhost:${address.port}`);
+  const socket = connect(`localhost:${address.port}`)
 
-    const writer = socket.writable.getWriter();
-    await t.resolves(writer.write(message));
-    await t.resolves(socket.close());
-    await once(server, 'close');
-    t.equal(connectCount, 1, 'should connect one time');
-  },
-);
+  const writer = socket.writable.getWriter()
+  await assert.doesNotReject(writer.write(message))
+  await assert.doesNotReject(socket.close())
+  await once(server, 'close')
+  assert.strictEqual(connectCount, 1, 'should connect one time')
+})
 
-void tap.test('connect on port 443 works', async (t) => {
-  const socket = connect(`github.com:443`);
-  await t.resolves(socket.close());
-});
+test('connect on port 443 works', async () => {
+  const socket = connect('github.com:443')
+  await assert.doesNotReject(socket.close())
+})
 
 for (const data of [
   new Uint8Array([0, 1, 2]),
@@ -102,53 +98,49 @@ for (const data of [
   new Uint32Array([0, 1, 2]),
   new BigUint64Array([0n, 1n, 2n]),
 ]) {
-  void tap.test(
-    `Read & write ${data.constructor.name} from the server`,
-    async (t) => {
-      const message =
-        data.constructor.name === 'Uint8Array'
-          ? (data as Uint8Array)
-          : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  test(`Read & write ${data.constructor.name} from the server`, async () => {
+    const message =
+      data.constructor.name === 'Uint8Array'
+        ? (data as Uint8Array)
+        : new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
 
-      const server = net.createServer();
-      server.on('connection', (c) => {
-        c.setEncoding('binary');
-        c.on('data', (data) => {
-          t.equal(data, Buffer.from(message.buffer).toString());
-          c.write(message);
-        });
-        c.on('end', () => {
-          server.close();
-        });
-      });
+    const server = net.createServer()
+    server.on('connection', (c) => {
+      c.setEncoding('binary')
+      c.on('data', (data) => {
+        assert.strictEqual(data, Buffer.from(message.buffer).toString())
+        c.write(message)
+      })
+      c.on('end', () => {
+        server.close()
+      })
+    })
 
-      const address = await listenAndGetSocketAddress(server);
+    const address = await listenAndGetSocketAddress(server)
 
-      const socket = connect(`localhost:${address.port}`);
-      const { reader, writer } = getReaderWriterFromSocket(socket);
+    const socket = connect(`localhost:${address.port}`)
+    const { reader, writer } = getReaderWriterFromSocket(socket)
 
-      await t.resolves(writer.write(message));
+    await assert.doesNotReject(writer.write(message))
 
-      await t.resolveMatch(reader.read(), { value: message, done: false });
+    assert.deepStrictEqual(await reader.read(), {
+      value: message,
+      done: false,
+    })
 
-      await t.resolves(socket.close());
+    await assert.doesNotReject(socket.close())
 
-      await once(server, 'close');
-    },
-  );
+    await once(server, 'close')
+  })
 }
 
-void tap.test('SocketError is thrown on connect failure', async (t) => {
-  t.plan(2);
-
-  const expectedError = new SocketError('connect ECONNREFUSED 127.0.0.1:1234');
+test('SocketError is thrown on connect failure', async () => {
+  const expectedError = new SocketError('connect ECONNREFUSED 127.0.0.1:1234')
   try {
-    const socket = connect('127.0.0.1:1234');
-    socket.opened.catch((err) => t.same(err, expectedError));
-    await socket.closed;
+    const socket = connect('127.0.0.1:1234')
+    socket.opened.catch((err) => assert.deepStrictEqual(err, expectedError))
+    await socket.closed
   } catch (err) {
-    t.same(err, expectedError);
-  } finally {
-    t.end();
+    assert.deepStrictEqual(err, expectedError)
   }
-});
+})
